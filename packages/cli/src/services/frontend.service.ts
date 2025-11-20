@@ -1,9 +1,4 @@
-import type {
-	FrontendSettings,
-	IEnterpriseSettings,
-	ITelemetrySettings,
-	N8nEnvFeatFlags,
-} from '@n8n/api-types';
+import type { FrontendSettings, ITelemetrySettings, N8nEnvFeatFlags } from '@n8n/api-types';
 import { LicenseState, Logger, ModuleRegistry } from '@n8n/backend-common';
 import { GlobalConfig, SecurityConfig } from '@n8n/config';
 import { LICENSE_FEATURES } from '@n8n/constants';
@@ -14,8 +9,6 @@ import uniq from 'lodash/uniq';
 import { BinaryDataConfig, InstanceSettings } from 'n8n-core';
 import type { ICredentialType, INodeTypeBaseDescription } from 'n8n-workflow';
 import path from 'path';
-
-import { UrlService } from './url.service';
 
 import config from '@/config';
 import { inE2ETests, N8N_VERSION } from '@/constants';
@@ -35,32 +28,9 @@ import { UserManagementMailer } from '@/user-management/email';
 import {
 	getWorkflowHistoryLicensePruneTime,
 	getWorkflowHistoryPruneTime,
-} from '@/workflows/workflow-history/workflow-history-helper';
+} from '@/workflows/workflow-history.ee/workflow-history-helper.ee';
 
-export type PublicEnterpriseSettings = Pick<
-	IEnterpriseSettings,
-	'saml' | 'ldap' | 'oidc' | 'showNonProdBanner'
->;
-
-export type PublicFrontendSettings = Pick<
-	FrontendSettings,
-	| 'settingsMode'
-	| 'instanceId'
-	| 'defaultLocale'
-	| 'versionCli'
-	| 'releaseChannel'
-	| 'versionNotifications'
-	| 'userManagement'
-	| 'sso'
-	| 'mfa'
-	| 'authCookie'
-	| 'oauthCallbackUrls'
-	| 'banners'
-	| 'previewMode'
-	| 'telemetry'
-> & {
-	enterprise: PublicEnterpriseSettings;
-};
+import { UrlService } from './url.service';
 
 @Service()
 export class FrontendService {
@@ -135,7 +105,6 @@ export class FrontendService {
 		}
 
 		this.settings = {
-			settingsMode: 'authenticated',
 			inE2ETests,
 			isDocker: this.instanceSettings.isDocker,
 			databaseType: this.globalConfig.database.type,
@@ -160,7 +129,6 @@ export class FrontendService {
 			urlBaseEditor: instanceBaseUrl,
 			binaryDataMode: this.binaryDataConfig.mode,
 			nodeJsVersion: process.version.replace(/^v/, ''),
-			nodeEnv: process.env.NODE_ENV,
 			versionCli: N8N_VERSION,
 			concurrency: this.globalConfig.executions.concurrency.productionLimit,
 			isNativePythonRunnerEnabled:
@@ -181,10 +149,6 @@ export class FrontendService {
 				whatsNewEndpoint: this.globalConfig.versionNotifications.whatsNewEndpoint,
 				infoUrl: this.globalConfig.versionNotifications.infoUrl,
 			},
-			dynamicBanners: {
-				endpoint: this.globalConfig.dynamicBanners.endpoint,
-				enabled: this.globalConfig.dynamicBanners.enabled,
-			},
 			instanceId: this.instanceSettings.instanceId,
 			telemetry: telemetrySettings,
 			posthog: {
@@ -192,8 +156,7 @@ export class FrontendService {
 				apiHost: this.globalConfig.diagnostics.posthogConfig.apiHost,
 				apiKey: this.globalConfig.diagnostics.posthogConfig.apiKey,
 				autocapture: false,
-				disableSessionRecording: this.globalConfig.deployment.type !== 'cloud',
-				proxy: `${instanceBaseUrl}/${restEndpoint}/posthog`,
+				disableSessionRecording: false,
 				debug: this.globalConfig.logging.level === 'debug',
 			},
 			personalizationSurveyEnabled:
@@ -236,13 +199,12 @@ export class FrontendService {
 			hiringBannerEnabled: this.globalConfig.hiringBanner.enabled,
 			aiAssistant: {
 				enabled: false,
-				setup: false,
 			},
 			templates: {
 				enabled: this.globalConfig.templates.enabled,
 				host: this.globalConfig.templates.host,
 			},
-			executionMode: this.globalConfig.executions.mode,
+			executionMode: config.getEnv('executions.mode'),
 			isMultiMain: this.instanceSettings.isMultiMain,
 			pushBackend: this.pushConfig.backend,
 
@@ -272,17 +234,16 @@ export class FrontendService {
 				showNonProdBanner: false,
 				debugInEditor: false,
 				binaryDataS3: false,
+				workflowHistory: false,
 				workerView: false,
 				advancedPermissions: false,
 				apiKeyScopes: false,
 				workflowDiffs: false,
-				provisioning: false,
 				projects: {
 					team: {
 						limit: 0,
 					},
 				},
-				customRoles: false,
 			},
 			mfa: {
 				enabled: false,
@@ -302,17 +263,13 @@ export class FrontendService {
 			askAi: {
 				enabled: false,
 			},
-			aiBuilder: {
-				enabled: false,
-				setup: false,
-			},
 			aiCredits: {
 				enabled: false,
 				credits: 0,
 			},
 			workflowHistory: {
-				pruneTime: getWorkflowHistoryPruneTime(),
-				licensePruneTime: getWorkflowHistoryLicensePruneTime(),
+				pruneTime: -1,
+				licensePruneTime: -1,
 			},
 			pruning: {
 				isEnabled: this.globalConfig.executions.pruneData,
@@ -323,6 +280,7 @@ export class FrontendService {
 				blockFileAccessToN8nFiles: this.securityConfig.blockFileAccessToN8nFiles,
 			},
 			easyAIWorkflowOnboarded: false,
+			partialExecution: this.globalConfig.partialExecutions,
 			folders: {
 				enabled: false,
 			},
@@ -385,7 +343,6 @@ export class FrontendService {
 		const isAiAssistantEnabled = this.license.isAiAssistantEnabled();
 		const isAskAiEnabled = this.license.isAskAiEnabled();
 		const isAiCreditsEnabled = this.license.isAiCreditsEnabled();
-		const isAiBuilderEnabled = this.license.isLicensed(LICENSE_FEATURES.AI_BUILDER);
 
 		this.settings.license.planName = this.license.getPlanName();
 		this.settings.license.consumerId = this.license.getConsumerId();
@@ -398,7 +355,6 @@ export class FrontendService {
 			saml: this.license.isSamlEnabled(),
 			oidc: this.licenseState.isOidcLicensed(),
 			mfaEnforcement: this.licenseState.isMFAEnforcementLicensed(),
-			provisioning: false, // temporarily disabled until this feature is ready for release
 			advancedExecutionFilters: this.license.isAdvancedExecutionFiltersEnabled(),
 			variables: this.license.isVariablesEnabled(),
 			sourceControl: this.license.isSourceControlLicensed(),
@@ -406,11 +362,12 @@ export class FrontendService {
 			showNonProdBanner: this.license.isLicensed(LICENSE_FEATURES.SHOW_NON_PROD_BANNER),
 			debugInEditor: this.license.isDebugInEditorLicensed(),
 			binaryDataS3: isS3Available && isS3Selected && isS3Licensed,
+			workflowHistory:
+				this.license.isWorkflowHistoryLicensed() && this.globalConfig.workflowHistory.enabled,
 			workerView: this.license.isWorkerViewLicensed(),
 			advancedPermissions: this.license.isAdvancedPermissionsLicensed(),
 			apiKeyScopes: this.license.isApiKeyScopesEnabled(),
 			workflowDiffs: this.licenseState.isWorkflowDiffsLicensed(),
-			customRoles: this.licenseState.isCustomRolesLicensed(),
 		});
 
 		if (this.license.isLdapEnabled()) {
@@ -437,14 +394,19 @@ export class FrontendService {
 			this.settings.variables.limit = this.license.getVariablesLimit();
 		}
 
+		if (this.globalConfig.workflowHistory.enabled && this.license.isWorkflowHistoryLicensed()) {
+			Object.assign(this.settings.workflowHistory, {
+				pruneTime: getWorkflowHistoryPruneTime(),
+				licensePruneTime: getWorkflowHistoryLicensePruneTime(),
+			});
+		}
+
 		if (this.communityPackagesService) {
 			this.settings.missingPackages = this.communityPackagesService.hasMissingPackages;
 		}
 
 		if (isAiAssistantEnabled) {
 			this.settings.aiAssistant.enabled = isAiAssistantEnabled;
-			this.settings.aiAssistant.setup =
-				!!this.globalConfig.aiAssistant.baseUrl || !!process.env.N8N_AI_ANTHROPIC_KEY;
 		}
 
 		if (isAskAiEnabled) {
@@ -456,18 +418,12 @@ export class FrontendService {
 			this.settings.aiCredits.credits = this.license.getAiCredits();
 		}
 
-		if (isAiBuilderEnabled) {
-			this.settings.aiBuilder.enabled = isAiBuilderEnabled;
-			this.settings.aiBuilder.setup =
-				!!this.globalConfig.aiAssistant.baseUrl || !!this.globalConfig.aiBuilder.apiKey;
-		}
-
 		this.settings.mfa.enabled = this.globalConfig.mfa.enabled;
 
 		// TODO: read from settings
 		this.settings.mfa.enforced = this.mfaService.isMFAEnforced();
 
-		this.settings.executionMode = this.globalConfig.executions.mode;
+		this.settings.executionMode = config.getEnv('executions.mode');
 
 		this.settings.binaryDataMode = this.binaryDataConfig.mode;
 
@@ -482,48 +438,6 @@ export class FrontendService {
 		this.settings.envFeatureFlags = this.collectEnvFeatureFlags();
 
 		return this.settings;
-	}
-
-	/**
-	 * Only add settings that are absolutely necessary for non-authenticated pages
-	 * @returns Public settings for unauthenticated users
-	 */
-	getPublicSettings(): PublicFrontendSettings {
-		// Get full settings to ensure all required properties are initialized
-		const {
-			instanceId,
-			defaultLocale,
-			versionCli,
-			releaseChannel,
-			versionNotifications,
-			userManagement,
-			sso,
-			mfa,
-			authCookie,
-			oauthCallbackUrls,
-			banners,
-			previewMode,
-			telemetry,
-			enterprise: { saml, ldap, oidc, showNonProdBanner },
-		} = this.getSettings();
-
-		return {
-			settingsMode: 'public',
-			instanceId,
-			defaultLocale,
-			versionCli,
-			releaseChannel,
-			versionNotifications,
-			userManagement,
-			sso,
-			mfa,
-			authCookie,
-			oauthCallbackUrls,
-			banners,
-			previewMode,
-			telemetry,
-			enterprise: { saml, ldap, oidc, showNonProdBanner },
-		};
 	}
 
 	getModuleSettings() {

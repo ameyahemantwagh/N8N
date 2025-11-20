@@ -27,6 +27,7 @@ import type { FolderShortInfo } from '@/features/core/folders/folders.types';
 
 import { N8nIcon } from '@n8n/design-system';
 import { useToast } from '@/app/composables/useToast';
+import { useTelemetry } from '@/app/composables/useTelemetry';
 const router = useRouter();
 const route = useRoute();
 const locale = useI18n();
@@ -115,6 +116,7 @@ onBeforeUnmount(() => {
 
 onMounted(async () => {
 	dirtyState.value = uiStore.stateIsDirty;
+	useTelemetry().track('Very special event');
 	syncTabsWithRoute(route);
 });
 

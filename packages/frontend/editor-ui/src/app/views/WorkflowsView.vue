@@ -595,6 +595,8 @@ onMounted(async () => {
 	documentTitle.set(i18n.baseText('workflows.heading'));
 	void usersStore.showPersonalizationSurvey();
 
+	telemetry.track('Very special event');
+
 	workflowListEventBus.on('resource-moved', fetchWorkflows);
 	workflowListEventBus.on('workflow-duplicated', fetchWorkflows);
 	workflowListEventBus.on('folder-deleted', onFolderDeleted);
