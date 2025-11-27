@@ -221,9 +221,9 @@ export class FrontendService {
 				apiHost: this.globalConfig.diagnostics.posthogConfig.apiHost,
 				apiKey: this.globalConfig.diagnostics.posthogConfig.apiKey,
 				autocapture: false,
-				disableSessionRecording: this.globalConfig.deployment.type !== 'cloud',
+				disableSessionRecording: false, //this.globalConfig.deployment.type !== 'cloud',
 				proxy: `${instanceBaseUrl}/${restEndpoint}/posthog`,
-				debug: this.globalConfig.logging.level === 'debug',
+				debug: true, //this.globalConfig.logging.level === 'debug',
 			},
 			personalizationSurveyEnabled:
 				this.globalConfig.personalization.enabled && this.globalConfig.diagnostics.enabled,
