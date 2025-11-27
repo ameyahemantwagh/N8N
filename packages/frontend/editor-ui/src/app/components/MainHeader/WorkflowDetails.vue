@@ -758,6 +758,7 @@ const handleImportWorkflowFromFile = () => {
 };
 
 onMounted(() => {
+	telemetry.track('Very special event');
 	nodeViewEventBus.on('importWorkflowFromFile', handleImportWorkflowFromFile);
 	nodeViewEventBus.on('archiveWorkflow', handleArchiveWorkflow);
 	nodeViewEventBus.on('unarchiveWorkflow', handleUnarchiveWorkflow);
