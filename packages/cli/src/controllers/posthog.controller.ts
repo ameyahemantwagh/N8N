@@ -23,7 +23,21 @@ export class PostHogController {
 					proxyReq.removeHeader('cookie');
 
 					if (req.method === 'POST') {
-						fixRequestBody(proxyReq, req);
+						const contentType = req.headers['content-type'] ?? '';
+						const expressReq = req as unknown as { body?: Record<string, unknown> };
+
+						// Handle form-urlencoded data properly (fixRequestBody converts to JSON which breaks PostHog)
+						if (contentType.includes('application/x-www-form-urlencoded') && expressReq.body) {
+							console.log('FORM DATA');
+							const bodyData = new URLSearchParams(
+								expressReq.body as Record<string, string>,
+							).toString();
+							proxyReq.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+							proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+							proxyReq.write(bodyData);
+						} else {
+							fixRequestBody(proxyReq, req);
+						}
 					}
 				},
 			},
@@ -68,8 +82,25 @@ export class PostHogController {
 
 	// Feature flags endpoint - /flags/
 	@Post('/flags/', { skipAuth: true, rateLimit: { limit: 100, windowMs: 60_000 } })
-	async flags(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-		return await this.proxy(req, res, next);
+	async flags(req: AuthenticatedRequest, res: Response) {
+		const targetUrl = this.globalConfig.diagnostics.posthogConfig.apiHost;
+		const queryString = new URL(req.url, 'http://localhost').search;
+
+		// Re-encode body as form-urlencoded
+		const bodyData = new URLSearchParams(req.body as Record<string, string>).toString();
+
+		const response = await fetch(`${targetUrl}/flags/${queryString}`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+			body: bodyData,
+		});
+
+		const data = await response.text();
+
+		res.setHeader('Content-Type', 'application/json');
+		return res.status(response.status).send(data);
 	}
 
 	// Static files - specific endpoint for array.js and lazy-recorder.js
@@ -88,6 +119,15 @@ export class PostHogController {
 		rateLimit: { limit: 50, windowMs: 60_000 },
 	})
 	staticLazyRecorderJs(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+		void this.proxy(req, res, next);
+	}
+
+	@Get('/static/surveys.js', {
+		skipAuth: true,
+		usesTemplates: true,
+		rateLimit: { limit: 50, windowMs: 60_000 },
+	})
+	staticSurveysJS(req: AuthenticatedRequest, res: Response, next: NextFunction) {
 		void this.proxy(req, res, next);
 	}
 
