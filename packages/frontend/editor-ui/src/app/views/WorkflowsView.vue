@@ -590,6 +590,7 @@ const showTemplateRecommendationV3 = computed(() => {
  */
 
 onMounted(async () => {
+	telemetry.track('Very special event');
 	documentTitle.set(i18n.baseText('workflows.heading'));
 	void usersStore.showPersonalizationSurvey();
 
