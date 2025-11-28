@@ -26,9 +26,8 @@ export class PostHogController {
 						const contentType = req.headers['content-type'] ?? '';
 						const expressReq = req as unknown as { body?: Record<string, unknown> };
 
-						// Handle form-urlencoded data properly (fixRequestBody converts to JSON which breaks PostHog)
+						// HACK: Re-fetch form-encoded body
 						if (contentType.includes('application/x-www-form-urlencoded') && expressReq.body) {
-							console.log('FORM DATA');
 							const bodyData = new URLSearchParams(
 								expressReq.body as Record<string, string>,
 							).toString();
@@ -65,6 +64,12 @@ export class PostHogController {
 	// Session recording events (alternative endpoint)
 	@Post('/e/', { skipAuth: true, rateLimit: { limit: 50, windowMs: 60_000 } })
 	async sessionEvents(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+		return await this.proxy(req, res, next);
+	}
+
+	// Ingestion events (versioned)
+	@Post('/i/v0/e/', { skipAuth: true, rateLimit: { limit: 50, windowMs: 60_000 } })
+	async ingestionEvents(req: AuthenticatedRequest, res: Response, next: NextFunction) {
 		return await this.proxy(req, res, next);
 	}
 
