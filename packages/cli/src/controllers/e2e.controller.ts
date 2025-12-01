@@ -220,8 +220,7 @@ export class E2EController {
 
 	@Get('/env-feature-flags', { skipAuth: true })
 	async getEnvFeatureFlags() {
-		const currentFlags = this.frontendService.getSettings().envFeatureFlags;
-		return currentFlags;
+		return (await this.frontendService.getSettings()).envFeatureFlags;
 	}
 
 	@Patch('/env-feature-flags', { skipAuth: true })
@@ -251,7 +250,7 @@ export class E2EController {
 		}
 
 		// Return the current environment feature flags
-		const currentFlags = this.frontendService.getSettings().envFeatureFlags;
+		const currentFlags = (await this.frontendService.getSettings()).envFeatureFlags;
 		return {
 			success: true,
 			message: 'Environment feature flags updated',
@@ -354,13 +353,6 @@ export class E2EController {
 				mfaRecoveryCodes: encryptedRecoveryCodes,
 			});
 		}
-
-		await this.settingsRepo.update(
-			{ key: 'userManagement.isInstanceOwnerSetUp' },
-			{ value: 'true' },
-		);
-
-		config.set('userManagement.isInstanceOwnerSetUp', true);
 	}
 
 	private async resetCache() {
