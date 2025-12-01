@@ -114,9 +114,9 @@ import { AddWorkflowHistoryAutoSaveFields1762847206508 } from '../common/1762847
 import { AddActiveVersionIdColumn1763047800000 } from '../common/1763047800000-AddActiveVersionIdColumn';
 import { ChangeOAuthStateColumnToUnboundedVarchar1763572724000 } from '../common/1763572724000-ChangeOAuthStateColumnToUnboundedVarchar';
 import { CreateBinaryDataTable1763716655000 } from '../common/1763716655000-CreateBinaryDataTable';
-import { AddWorkflowVersionIdToExecutionData1764072875856 } from '../common/1764072875856-AddWorkflowVersionIdToExecutionData';
+import { CreateWorkflowPublishHistoryTable1764167920585 } from '../common/1764167920585-CreateWorkflowPublishHistoryTable';
+import { AddWorkflowVersionIdToExecutionData1764578434978 } from '../common/1764578434978-AddWorkflowVersionIdToExecutionData';
 import type { Migration } from '../migration-types';
-
 const sqliteMigrations: Migration[] = [
 	InitialMigration1588102412422,
 	WebhookModel1592445003908,
@@ -234,7 +234,8 @@ const sqliteMigrations: Migration[] = [
 	AddAttachmentsToChatHubMessages1761773155024,
 	AddActiveVersionIdColumn1763047800000,
 	CreateBinaryDataTable1763716655000,
-	AddWorkflowVersionIdToExecutionData1764072875856,
+	CreateWorkflowPublishHistoryTable1764167920585,
+	AddWorkflowVersionIdToExecutionData1764578434978,
 ];
 
 export { sqliteMigrations };

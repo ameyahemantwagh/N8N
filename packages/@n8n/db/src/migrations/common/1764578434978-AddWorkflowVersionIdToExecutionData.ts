@@ -1,8 +1,8 @@
 import type { MigrationContext, ReversibleMigration } from '../migration-types';
 
-export class AddWorkflowVersionIdToExecutionData1764072875856 implements ReversibleMigration {
+export class AddWorkflowVersionIdToExecutionData1764578434978 implements ReversibleMigration {
 	async up({ schemaBuilder: { addColumns, column } }: MigrationContext) {
-		await addColumns('execution_data', [column('workflowVersionId').varchar()]);
+		await addColumns('execution_data', [column('workflowVersionId').varchar(32)]);
 	}
 
 	async down({ schemaBuilder: { dropColumns } }: MigrationContext) {
